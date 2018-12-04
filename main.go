@@ -17,7 +17,10 @@ const (
 )
 
 var reCSF = regexp.MustCompile(`(\w+)(?:=|\()([^,)]+)`)
-var reDefTerm = regexp.MustCompile(`\([^,)]+\){1}$`)
+
+// var1 \([^,=)]+\){1}$
+// var2 \([^,=)]+\)
+var reDefTerm = regexp.MustCompile(`\([^,=)]+\){1}$`)
 
 func check(e error) {
 	if e != nil {
@@ -76,7 +79,7 @@ func parseTerms(terms []string) {
 		t = strings.Trim(t, " ") // strip blanks
 		switch {
 		// last element of the flow term
-		case reDefTerm.MatchString(t):
+		case reDefTerm.MatchString(t) && !actions:
 			parseDefTerm(t, 0)
 		case i == len(terms)-1:
 			parseLastTerm(t)
@@ -150,11 +153,11 @@ func parseActionTerm(t string, curActionType *string) {
 		fmt.Printf("  %s:\n", newActionType)
 		*curActionType = newActionType
 	}
-	t = t[strings.Index(t, "(")+1:]
-	if reCSF.MatchString(t) {
-		parseDefComplexTerm(t, 4)
-	} else {
+	t = t[strings.Index(t, "(")+1 : len(t)-1] // strip wrapping structure (i.e. 'set()')
+	if reDefTerm.MatchString(t) {
 		parseDefTerm(t, 4)
+	} else if reCSF.MatchString(t) {
+		parseDefComplexTerm(t, 4)
 	}
 
 }
@@ -165,6 +168,5 @@ func parseLastTerm(t string) {
 
 func parseDumpFlow(i int, flow string) {
 	terms := combineComplexFlowEntries(&flow)
-	// fmt.Println(terms)
 	parseTerms(terms)
 }
